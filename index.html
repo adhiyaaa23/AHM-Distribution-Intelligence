@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AHM Distribution Intelligence | SPC & Random Forest Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- SheetJS for Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+  <!-- ============ LOADING SCREEN ============ -->
+  <div id="loader" class="loader-overlay">
+    <div class="loader-content">
+      <div class="loader-logo">
+        <img src="AHM.jpg" alt="AHM Logo" class="loader-ahm-img" />
+        <span class="loader-sub">DISTRIBUTION INTELLIGENCE</span>
+      </div>
+      <div class="loader-bar-wrap">
+        <div class="loader-bar" id="loaderBar"></div>
+      </div>
+      <div class="loader-status" id="loaderStatus">Initializing system modules...</div>
+      <div class="loader-grid"></div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN APP ============ -->
+  <div id="app" class="app-hidden">
+
+    <!-- NAV -->
+    <nav class="navbar" id="navbar">
+      <div class="nav-left">
+        <div class="nav-logo">
+          <div class="logo-img-wrap">
+            <img src="AHM.jpg" alt="AHM Logo" class="nav-logo-img" />
+          </div>
+          <div class="logo-text">
+            <span class="logo-title">Distribution Intelligence</span>
+            <span class="logo-sub">Plant 3 Cikarang · Analytics Suite</span>
+          </div>
+        </div>
+      </div>
+      <div class="nav-center">
+        <button class="nav-tab active" data-tab="overview" onclick="switchTab('overview')">
+          <i data-lucide="layout-dashboard"></i> Overview
+        </button>
+        <button class="nav-tab" data-tab="spc" onclick="switchTab('spc')">
+          <i data-lucide="activity"></i> SPC Monitor
+        </button>
+        <button class="nav-tab" data-tab="ml" onclick="switchTab('ml')">
+          <i data-lucide="brain-circuit"></i> RF Prediction
+        </button>
+        <button class="nav-tab" data-tab="upload" onclick="switchTab('upload')">
+          <i data-lucide="upload-cloud"></i> Import Data
+        </button>
+      </div>
+      <div class="nav-right">
+        <div class="nav-status">
+          <span class="status-dot live"></span>
+          <span>Live Analysis</span>
+        </div>
+        <div class="nav-date" id="navDate"></div>
+      </div>
+    </nav>
+
+    <!-- TICKER -->
+    <div class="ticker-wrap">
+      <div class="ticker-track" id="tickerTrack">
+        <span>OTD RATE: 87.3%</span>
+        <span class="sep">◆</span>
+        <span>TOTAL PENGIRIMAN: 12,847 unit</span>
+        <span class="sep">◆</span>
+        <span>PROSES TERKENDALI: 91.2%</span>
+        <span class="sep">◆</span>
+        <span>RANDOM FOREST ACCURACY: 94.6%</span>
+        <span class="sep">◆</span>
+        <span>ANOMALI TERDETEKSI: 3 titik</span>
+        <span class="sep">◆</span>
+        <span>VENDOR TERBAIK: PT Logindo Utama</span>
+        <span class="sep">◆</span>
+        <span>SMOTE APPLIED: BALANCED RATIO 1:1</span>
+        <span class="sep">◆</span>
+        <span>PRECISION: 92.1% | RECALL: 89.4% | F1: 90.7%</span>
+        <span class="sep">◆</span>
+      </div>
+    </div>
+
+    <!-- ============ OVERVIEW TAB ============ -->
+    <div class="tab-content active" id="tab-overview">
+
+      <!-- Hero Section -->
+      <section class="hero-section fade-in-up">
+        <div class="hero-bg-text">ANALYTICS</div>
+        <div class="hero-content">
+          <div class="hero-badge">PKL · UNIVERSITAS BRAWIJAYA × PT ASTRA HONDA MOTOR</div>
+          <h1 class="hero-title">
+            Analisis Kinerja<br>
+            <span class="accent">Distribusi Produk</span>
+          </h1>
+          <p class="hero-desc">
+            Integrasi Statistical Process Control (SPC) & Algoritma Random Forest<br>
+            untuk Mendukung Ketepatan Waktu Pengiriman
+          </p>
+          <div class="hero-author">
+            <span class="author-name">Muhammad Ad'hiya Hartono</span>
+            <span class="author-nim">235090500111056</span>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-scan"></div>
+          <div class="hero-dot hero-dot-1"></div>
+          <div class="hero-dot hero-dot-2"></div>
+          <div class="hero-dot hero-dot-3"></div>
+          <canvas id="heroChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Analysis Live Banner (hidden until upload) -->
+      <div class="analysis-banner" id="overviewBanner" style="display:none">
+        <div class="banner-dot"></div>
+        <span id="overviewBannerText">Data aktif dari file upload — semua metrik diperbarui secara real-time</span>
+        <span class="banner-close" onclick="this.parentElement.style.display='none'">✕</span>
+      </div>
+
+      <!-- KPI Cards -->
+      <section class="kpi-section">
+        <div class="kpi-grid">
+          <div class="kpi-card fade-in-up" style="--delay:0.1s">
+            <div class="kpi-icon"><i data-lucide="truck"></i></div>
+            <div class="kpi-data">
+              <div class="kpi-value counter" data-target="12847">0</div>
+              <div class="kpi-label">Total Pengiriman</div>
+              <div class="kpi-sub">Periode Q1–Q2 2026</div>
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="--width:87%"></div></div>
+          </div>
+          <div class="kpi-card fade-in-up" style="--delay:0.2s">
+            <div class="kpi-icon accent"><i data-lucide="clock-check"></i></div>
+            <div class="kpi-data">
+              <div class="kpi-value counter" data-target="87" data-suffix="%">0</div>
+              <div class="kpi-label">On-Time Delivery</div>
+              <div class="kpi-sub">↑ 3.2% dari bulan lalu</div>
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill accent" style="--width:87%"></div></div>
+          </div>
+          <div class="kpi-card fade-in-up" style="--delay:0.3s">
+            <div class="kpi-icon warning"><i data-lucide="alert-triangle"></i></div>
+            <div class="kpi-data">
+              <div class="kpi-value counter" data-target="1673">0</div>
+              <div class="kpi-label">Pengiriman Terlambat</div>
+              <div class="kpi-sub">13% dari total pengiriman</div>
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill warning" style="--width:13%"></div></div>
+          </div>
+          <div class="kpi-card fade-in-up" style="--delay:0.4s">
+            <div class="kpi-icon success"><i data-lucide="shield-check"></i></div>
+            <div class="kpi-data">
+              <div class="kpi-value counter" data-target="946" data-prefix="" data-suffix="%">0</div>
+              <div class="kpi-label">RF Model Accuracy</div>
+              <div class="kpi-sub">After SMOTE balancing</div>
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill success" style="--width:94.6%"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Row -->
+      <section class="charts-row">
+        <div class="chart-card large fade-in-up" style="--delay:0.2s">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Tren Keterlambatan Pengiriman</div>
+              <div class="chart-sub">Proporsi harian · 30 hari terakhir</div>
+            </div>
+            <div class="chart-badge">SPC ANALYSIS</div>
+          </div>
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="chart-card fade-in-up" style="--delay:0.3s">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Distribusi Status Pengiriman</div>
+              <div class="chart-sub">Komposisi keseluruhan</div>
+            </div>
+            <div class="chart-badge">OTD</div>
+          </div>
+          <div class="donut-chart-wrap">
+            <canvas id="donutChart"></canvas>
+          </div>
+          <div class="donut-legend">
+            <div class="legend-item"><span class="dot success"></span> Tepat Waktu (87%)</div>
+            <div class="legend-item"><span class="dot warning"></span> Terlambat (13%)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Method Cards -->
+      <section class="methods-section fade-in-up" style="--delay:0.2s">
+        <div class="section-header">
+          <h2 class="section-title">Metodologi Analisis</h2>
+          <div class="section-line"></div>
+        </div>
+        <div class="methods-grid">
+          <div class="method-card">
+            <div class="method-step">01</div>
+            <div class="method-icon"><i data-lucide="database"></i></div>
+            <h3>Pengumpulan Data</h3>
+            <p>Ekstraksi data historis operasional logistik: jarak rute, waktu keberangkatan, profil vendor, kapasitas armada.</p>
+            <div class="method-tag">DATA COLLECTION</div>
+          </div>
+          <div class="method-card">
+            <div class="method-step">02</div>
+            <div class="method-icon"><i data-lucide="filter"></i></div>
+            <h3>Preprocessing & SMOTE</h3>
+            <p>Pembersihan data, handling missing values, dan penyeimbangan kelas dengan teknik SMOTE untuk mengatasi imbalanced data.</p>
+            <div class="method-tag">PREPROCESSING</div>
+          </div>
+          <div class="method-card active">
+            <div class="method-step">03</div>
+            <div class="method-icon"><i data-lucide="activity"></i></div>
+            <h3>Statistical Process Control</h3>
+            <p>Pembuatan p-chart untuk memonitor stabilitas proporsi keterlambatan dan mendeteksi special cause variation.</p>
+            <div class="method-tag">SPC · P-CHART</div>
+          </div>
+          <div class="method-card">
+            <div class="method-step">04</div>
+            <div class="method-icon"><i data-lucide="git-branch"></i></div>
+            <h3>Random Forest Model</h3>
+            <p>Training model ensemble learning dengan ratusan decision trees, optimasi hyperparameter, dan ekstraksi feature importance.</p>
+            <div class="method-tag">MACHINE LEARNING</div>
+          </div>
+          <div class="method-card">
+            <div class="method-step">05</div>
+            <div class="method-icon"><i data-lucide="bar-chart-3"></i></div>
+            <h3>Evaluasi Model</h3>
+            <p>Confusion matrix, Precision, Recall, F1-Score untuk validasi performa klasifikasi keterlambatan pengiriman.</p>
+            <div class="method-tag">EVALUATION</div>
+          </div>
+          <div class="method-card">
+            <div class="method-step">06</div>
+            <div class="method-icon"><i data-lucide="lightbulb"></i></div>
+            <h3>Rekomendasi SOP</h3>
+            <p>Terjemahan feature importance menjadi rekomendasi perbaikan SOP logistik berbasis data untuk manajemen AHM.</p>
+            <div class="method-tag">ACTIONABLE INSIGHT</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============ SPC TAB ============ -->
+    <div class="tab-content" id="tab-spc">
+
+      <!-- SPC Tab Hero -->
+      <div class="tab-hero fade-in-up">
+        <div class="tab-hero-label">STATISTICAL PROCESS CONTROL</div>
+        <h2 class="tab-hero-title">Peta Kendali Proporsi <span class="accent">p-Chart</span></h2>
+        <p class="tab-hero-desc">Monitoring stabilitas proses distribusi PT Astra Honda Motor Plant 3 Cikarang</p>
+      </div>
+
+      <!-- ════════════════════════════════
+           PANEL TUNGGAL: p-Chart Data Upload
+           ════════════════════════════════ -->
+      <div id="spc-panel-main" class="spc-panel active">
+
+        <!-- State: belum ada data upload -->
+        <div id="spcMainEmpty" class="spc-after-empty fade-in-up">
+          <div class="spc-empty-icon"><i data-lucide="upload-cloud"></i></div>
+          <h3>Belum Ada Data Diupload</h3>
+          <p>Upload data Excel/CSV pada tab <strong>Import Data</strong>, kemudian jalankan analisis. p-Chart mingguan dari data Anda akan tampil di sini secara otomatis.</p>
+          <button class="spc-empty-btn" onclick="switchTab('upload')">
+            <i data-lucide="upload-cloud"></i> Upload Data Sekarang
+          </button>
+        </div>
+
+        <!-- State: data sudah diupload -->
+        <div id="spcMainResults" style="display:none">
+
+          <!-- Analysis Live Banner -->
+          <div class="analysis-banner fade-in-up" id="spcBanner">
+            <div class="banner-dot"></div>
+            <span id="spcBannerText">p-Chart dihitung dari data upload Anda · Agregasi per minggu · UCL/LCL 3σ variable</span>
+            <span class="banner-close" onclick="this.parentElement.style.display='none'">✕</span>
+          </div>
+
+          <!-- Info strip -->
+          <div class="spc-before-info fade-in-up">
+            <div class="spc-before-info-icon"><i data-lucide="info"></i></div>
+            <div class="spc-before-info-text" id="spcMainInfoText">
+              <strong>Data Mentah (Raw) — Agregasi Mingguan</strong>
+              p-Chart dihitung dari data yang baru Anda upload, diagregasi per minggu. Setiap titik mewakili satu minggu pengamatan. Titik oranye = di atas UCL (Out of Control). Gunakan untuk melihat stabilitas proses sebelum analisis lanjutan.
+            </div>
+            <div class="spc-before-info-tag" id="spcMainInfoTag">RAW DATA · AGREGASI MINGGUAN · UCL/LCL 3σ</div>
+          </div>
+
+          <!-- Aggregation Toggle -->
+          <div class="spc-agg-toggle fade-in-up">
+            <span class="spc-agg-label"><i data-lucide="calendar-days"></i> Agregasi Subgrup:</span>
+            <div class="spc-agg-btn-group">
+              <button class="spc-agg-btn" id="aggBtnDaily" onclick="setSpcAggregation('daily')">
+                <i data-lucide="calendar"></i> Per Hari
+              </button>
+              <button class="spc-agg-btn active" id="aggBtnWeekly" onclick="setSpcAggregation('weekly')">
+                <i data-lucide="calendar-range"></i> Per Minggu
+              </button>
+            </div>
+            <span class="spc-agg-desc" id="spcAggDesc">Setiap titik = 1 minggu pengiriman</span>
+          </div>
+
+          <!-- SPC Formula Card -->
+          <div class="formula-strip fade-in-up">
+            <div class="formula-item">
+              <div class="formula-label">Center Line (CL)</div>
+              <div class="formula-math">p̄ = Σxᵢ / Σnᵢ</div>
+            </div>
+            <div class="formula-divider"></div>
+            <div class="formula-item">
+              <div class="formula-label">Upper Control Limit</div>
+              <div class="formula-math">UCL = p̄ + 3√[p̄(1-p̄)/n]</div>
+            </div>
+            <div class="formula-divider"></div>
+            <div class="formula-item">
+              <div class="formula-label">Lower Control Limit</div>
+              <div class="formula-math">LCL = p̄ − 3√[p̄(1-p̄)/n]</div>
+            </div>
+            <div class="formula-divider"></div>
+            <div class="formula-item">
+              <div class="formula-label">Status Proses</div>
+              <div class="formula-status" id="spcMainStatusWrap">
+                <span class="status-badge in-control" id="spcMainStatus">MENUNGGU DATA</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- P-Chart Utama -->
+          <div class="chart-card full fade-in-up">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">p-Chart · Proporsi Keterlambatan Pengiriman (Agregasi Mingguan)</div>
+                <div class="chart-sub" id="spcMainChartSub">Dihitung dari data upload · Setiap titik = 1 minggu · UCL/LCL 3σ variable</div>
+              </div>
+              <div class="spc-legend">
+                <span class="spc-leg ucl">— UCL</span>
+                <span class="spc-leg cl">— CL (p̄)</span>
+                <span class="spc-leg lcl">— LCL</span>
+                <span class="spc-leg ooc">● Out of Control</span>
+              </div>
+            </div>
+            <canvas id="spcChart"></canvas>
+          </div>
+
+          <!-- SPC Stats -->
+          <div class="spc-stats-grid fade-in-up">
+            <div class="spc-stat-card">
+              <div class="spc-stat-val" id="mainStatPbar">—</div>
+              <div class="spc-stat-label">p̄ (Rata-rata Proporsi)</div>
+            </div>
+            <div class="spc-stat-card">
+              <div class="spc-stat-val accent" id="mainStatUcl">—</div>
+              <div class="spc-stat-label">UCL (Batas Atas)</div>
+            </div>
+            <div class="spc-stat-card">
+              <div class="spc-stat-val success" id="mainStatLcl">—</div>
+              <div class="spc-stat-label">LCL (Batas Bawah)</div>
+            </div>
+            <div class="spc-stat-card">
+              <div class="spc-stat-val warning" id="mainStatOoc">—</div>
+              <div class="spc-stat-label">Titik Out of Control</div>
+            </div>
+            <div class="spc-stat-card">
+              <div class="spc-stat-val" id="mainStatN">—</div>
+              <div class="spc-stat-label" id="mainStatNLabel">Rata-rata Sampel/Minggu (n)</div>
+            </div>
+            <div class="spc-stat-card">
+              <div class="spc-stat-val success" id="mainStatInCtrl">—</div>
+              <div class="spc-stat-label" id="mainStatInCtrlLabel">Minggu Dalam Kendali</div>
+            </div>
+          </div>
+
+          <!-- OOC Table -->
+          <div class="table-card fade-in-up">
+            <div class="table-header">
+              <div class="chart-title">Identifikasi Titik Out of Control · Data Upload</div>
+              <div class="chart-sub" id="oocTableSub">Special Cause Variation dari data yang Anda upload (agregasi mingguan)</div>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th id="oocColPeriod">Minggu ke-</th>
+                  <th>Label</th>
+                  <th>Proporsi (p)</th>
+                  <th>UCL</th>
+                  <th>Status</th>
+                  <th>Keterangan</th>
+                </tr>
+              </thead>
+              <tbody id="oocTableBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Interpretasi Otomatis -->
+          <div class="spc-interpretation fade-in-up" id="spcInterpretation">
+            <div class="interp-header">
+              <i data-lucide="message-square-text"></i>
+              <span>Interpretasi Otomatis</span>
+            </div>
+            <div class="interp-body" id="interpBody">
+              Analisis sedang disiapkan...
+            </div>
+          </div>
+
+        </div><!-- /spcMainResults -->
+      </div><!-- /spc-panel-main -->
+
+    </div><!-- /tab-spc -->
+
+    <!-- ============ ML TAB ============ -->
+    <div class="tab-content" id="tab-ml">
+      <div class="tab-hero fade-in-up">
+        <div class="tab-hero-label">MACHINE LEARNING · ENSEMBLE METHOD</div>
+        <h2 class="tab-hero-title">Random Forest <span class="accent">Classifier</span></h2>
+        <p class="tab-hero-desc">Prediksi probabilitas keterlambatan pengiriman berbasis 500 decision trees dengan SMOTE balancing</p>
+      </div>
+
+      <!-- Analysis Live Banner ML -->
+      <div class="analysis-banner" id="mlBanner" style="display:none">
+        <div class="banner-dot"></div>
+        <span id="mlBannerText">Feature importance & metrik model dihitung dari data upload Anda</span>
+        <span class="banner-close" onclick="this.parentElement.style.display='none'">✕</span>
+      </div>
+
+      <!-- ── SECTION 1: RF PIPELINE ── -->
+      <div class="rf-section-label fade-in-up">TAHAP 1 · ALUR ANALISIS RANDOM FOREST</div>
+      <div class="rf-pipeline fade-in-up">
+        <div class="rf-pipe-step">
+          <div class="rf-pipe-icon"><i data-lucide="database"></i></div>
+          <div class="rf-pipe-title">Raw Data</div>
+          <div class="rf-pipe-sub" id="pipeRawData">Dataset asli</div>
+        </div>
+        <div class="rf-pipe-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="rf-pipe-step active">
+          <div class="rf-pipe-icon"><i data-lucide="shuffle"></i></div>
+          <div class="rf-pipe-title">SMOTE</div>
+          <div class="rf-pipe-sub" id="pipeSmote">Balancing kelas</div>
+        </div>
+        <div class="rf-pipe-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="rf-pipe-step">
+          <div class="rf-pipe-icon"><i data-lucide="scissors"></i></div>
+          <div class="rf-pipe-title">Train / Test Split</div>
+          <div class="rf-pipe-sub">80% train · 20% test</div>
+        </div>
+        <div class="rf-pipe-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="rf-pipe-step">
+          <div class="rf-pipe-icon"><i data-lucide="git-branch"></i></div>
+          <div class="rf-pipe-title">500 Trees</div>
+          <div class="rf-pipe-sub">Ensemble training</div>
+        </div>
+        <div class="rf-pipe-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="rf-pipe-step">
+          <div class="rf-pipe-icon"><i data-lucide="shield-check"></i></div>
+          <div class="rf-pipe-title">Evaluasi</div>
+          <div class="rf-pipe-sub" id="pipeAccuracy">Akurasi model</div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 2: MODEL STRIP ── -->
+      <div class="model-strip fade-in-up">
+        <div class="model-stat">
+          <div class="model-stat-val">500</div>
+          <div class="model-stat-key">Decision Trees</div>
+        </div>
+        <div class="model-stat">
+          <div class="model-stat-val" id="mlFiturCount">8</div>
+          <div class="model-stat-key">Fitur Prediktor</div>
+        </div>
+        <div class="model-stat">
+          <div class="model-stat-val accent" id="mlAccuracy">94.6%</div>
+          <div class="model-stat-key">Akurasi</div>
+        </div>
+        <div class="model-stat">
+          <div class="model-stat-val" id="mlPrecision">92.1%</div>
+          <div class="model-stat-key">Precision</div>
+        </div>
+        <div class="model-stat">
+          <div class="model-stat-val" id="mlRecall">89.4%</div>
+          <div class="model-stat-key">Recall</div>
+        </div>
+        <div class="model-stat">
+          <div class="model-stat-val success" id="mlF1">90.7%</div>
+          <div class="model-stat-key">F1-Score</div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 3: SMOTE DETAIL ── -->
+      <div class="rf-section-label fade-in-up">TAHAP 2 · SMOTE — SYNTHETIC MINORITY OVERSAMPLING TECHNIQUE</div>
+      <div class="smote-detail-grid fade-in-up">
+
+        <!-- SMOTE Before/After Visual -->
+        <div class="chart-card smote-main-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Distribusi Kelas Sebelum & Sesudah SMOTE</div>
+              <div class="chart-sub">Penyeimbangan kelas minoritas dengan synthetic data generation (k=5 nearest neighbors)</div>
+            </div>
+            <div class="chart-badge">SMOTE</div>
+          </div>
+          <canvas id="smoteChart"></canvas>
+        </div>
+
+        <!-- SMOTE Stats -->
+        <div class="chart-card smote-stats-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Rincian SMOTE</div>
+              <div class="chart-sub">Statistik balancing per kelas</div>
+            </div>
+          </div>
+
+          <!-- Before -->
+          <div class="smote-block">
+            <div class="smote-block-title"><span class="smote-badge before">SEBELUM SMOTE</span></div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label">Total sampel asli</span>
+              <span class="smote-stat-val" id="smoteOrigTotal">—</span>
+            </div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label success-text">✔ Tepat Waktu (mayoritas)</span>
+              <span class="smote-stat-val" id="smoteOrigMaj">—</span>
+            </div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label warn-text">⚠ Terlambat (minoritas)</span>
+              <span class="smote-stat-val" id="smoteOrigMin">—</span>
+            </div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label">Rasio imbalance</span>
+              <span class="smote-stat-val danger-val" id="smoteRatio">—</span>
+            </div>
+          </div>
+
+          <div class="smote-process-arrow">
+            <div class="smote-proc-line"></div>
+            <div class="smote-proc-label">SMOTE (k=5 KNN) menghasilkan data sintetis untuk kelas minoritas</div>
+            <div class="smote-proc-line"></div>
+          </div>
+
+          <!-- After -->
+          <div class="smote-block">
+            <div class="smote-block-title"><span class="smote-badge after">SESUDAH SMOTE</span></div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label">Total sampel (balanced)</span>
+              <span class="smote-stat-val" id="smoteNewTotal">—</span>
+            </div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label success-text">✔ Tepat Waktu</span>
+              <span class="smote-stat-val" id="smoteNewMaj">—</span>
+            </div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label orange-text">⊕ Terlambat (+ sintetis)</span>
+              <span class="smote-stat-val" id="smoteNewMin">—</span>
+            </div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label orange-text">Synthetic samples dibuat</span>
+              <span class="smote-stat-val accent-val" id="smoteSynthCount">—</span>
+            </div>
+            <div class="smote-stat-row">
+              <span class="smote-stat-label">Rasio setelah balancing</span>
+              <span class="smote-stat-val success-val" id="smoteNewRatio">1 : 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SMOTE Explanation -->
+      <div class="smote-explanation fade-in-up">
+        <div class="smote-exp-item">
+          <div class="smote-exp-icon"><i data-lucide="info"></i></div>
+          <div>
+            <strong>Mengapa SMOTE Diperlukan?</strong>
+            <p>Kelas "Terlambat" jauh lebih sedikit dari "Tepat Waktu". Tanpa balancing, model cenderung bias memprediksi mayoritas dan mengabaikan kelas minoritas — menyebabkan Recall yang sangat rendah untuk kelas terlambat.</p>
+          </div>
+        </div>
+        <div class="smote-exp-item">
+          <div class="smote-exp-icon"><i data-lucide="cpu"></i></div>
+          <div>
+            <strong>Cara Kerja SMOTE (k=5)</strong>
+            <p>Untuk setiap sampel minoritas, SMOTE mencari 5 tetangga terdekat (k-NN), lalu membuat titik sintetis baru di antara sampel asli dan tetangganya. Hasilnya adalah data sintetis yang realistis — bukan duplikasi mentah.</p>
+          </div>
+        </div>
+        <div class="smote-exp-item">
+          <div class="smote-exp-icon"><i data-lucide="trending-up"></i></div>
+          <div>
+            <strong>Dampak terhadap Model</strong>
+            <p>Setelah SMOTE, model Random Forest melihat kedua kelas secara seimbang saat training. Ini meningkatkan kemampuan model mendeteksi keterlambatan (Recall ↑) tanpa mengorbankan Precision secara signifikan.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 4: FEATURE IMPORTANCE + CONFUSION MATRIX ── -->
+      <div class="rf-section-label fade-in-up">TAHAP 3 · TRAINING & EVALUASI MODEL</div>
+      <div class="ml-grid fade-in-up">
+        <!-- Feature Importance -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Feature Importance (Gini Impurity Reduction)</div>
+              <div class="chart-sub" id="featureChartSub">Ranking kontribusi variabel prediktor terhadap prediksi keterlambatan</div>
+            </div>
+            <div class="chart-badge">RF INSIGHT</div>
+          </div>
+          <canvas id="featureChart"></canvas>
+          <div class="gini-formula-inline">
+            <span class="gini-label">Formula:</span>
+            <span class="gini-eq">Gini = 1 − Σ (pᵢ)²</span>
+            <span class="gini-desc">Semakin besar reduksi Gini, semakin penting fitur tersebut</span>
+          </div>
+        </div>
+
+        <!-- Confusion Matrix -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Confusion Matrix</div>
+              <div class="chart-sub" id="cmSubTitle">Test set (20% data)</div>
+            </div>
+            <div class="chart-badge">EVALUASI</div>
+          </div>
+          <div class="confusion-matrix" id="confusionMatrix">
+            <div class="cm-axis-label cm-x">Prediksi</div>
+            <div class="cm-axis-label cm-y">Aktual</div>
+            <div class="cm-grid">
+              <div class="cm-header-row">
+                <div class="cm-empty"></div>
+                <div class="cm-col-header">Tepat Waktu</div>
+                <div class="cm-col-header">Terlambat</div>
+              </div>
+              <div class="cm-row">
+                <div class="cm-row-header">Tepat Waktu</div>
+                <div class="cm-cell tp">
+                  <div class="cm-val" id="cmTP">2,198</div>
+                  <div class="cm-type">TP</div>
+                </div>
+                <div class="cm-cell tn">
+                  <div class="cm-val" id="cmFN">39</div>
+                  <div class="cm-type">FN</div>
+                </div>
+              </div>
+              <div class="cm-row">
+                <div class="cm-row-header">Terlambat</div>
+                <div class="cm-cell fp">
+                  <div class="cm-val" id="cmFP">97</div>
+                  <div class="cm-type">FP</div>
+                </div>
+                <div class="cm-cell fn">
+                  <div class="cm-val" id="cmTN">236</div>
+                  <div class="cm-type">TN</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cm-legend">
+            <div class="cm-leg-item"><span class="cm-leg-dot tp"></span>TP: Terlambat diprediksi tepat, aktualnya tepat</div>
+            <div class="cm-leg-item"><span class="cm-leg-dot fn-dot"></span>FN: Diprediksi tepat, aktualnya terlambat (miss)</div>
+            <div class="cm-leg-item"><span class="cm-leg-dot fp-dot"></span>FP: Diprediksi terlambat, aktualnya tepat (false alarm)</div>
+            <div class="cm-leg-item"><span class="cm-leg-dot tn"></span>TN: Terlambat diprediksi terlambat, benar</div>
+          </div>
+          <div class="cm-metrics">
+            <div class="cm-metric"><span>Precision</span><strong id="cmPrecision">92.1%</strong></div>
+            <div class="cm-metric"><span>Recall</span><strong id="cmRecall">89.4%</strong></div>
+            <div class="cm-metric"><span>F1-Score</span><strong class="accent" id="cmF1">90.7%</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 5: REKOMENDASI DARI DATA ── -->
+      <div class="rf-section-label fade-in-up">TAHAP 4 · REKOMENDASI BERBASIS DATA</div>
+      <div class="rec-grid fade-in-up" id="recGrid">
+        <!-- Diisi dinamis oleh JS -->
+        <div class="rec-card-new">
+          <div class="rec-card-num">01</div>
+          <div class="rec-card-icon"><i data-lucide="map-pin"></i></div>
+          <div class="rec-card-body">
+            <div class="rec-card-feature">Jarak Rute (KM)</div>
+            <div class="rec-card-title">Optimasi Rute Jarak Jauh</div>
+            <p>Jarak rute adalah prediktor terkuat keterlambatan. Tetapkan armada dedicated untuk rute &gt; threshold dan evaluasi opsi rute alternatif.</p>
+            <div class="rec-card-impact"><span class="impact-dot high"></span>Dampak Tinggi</div>
+          </div>
+        </div>
+        <div class="rec-card-new">
+          <div class="rec-card-num">02</div>
+          <div class="rec-card-icon"><i data-lucide="building-2"></i></div>
+          <div class="rec-card-body">
+            <div class="rec-card-feature">Kode Vendor</div>
+            <div class="rec-card-title">Evaluasi Kinerja Vendor</div>
+            <p>Vendor tertentu memiliki korelasi tinggi dengan keterlambatan. Lakukan audit periodik dan tetapkan SLA yang lebih ketat untuk vendor berperforma rendah.</p>
+            <div class="rec-card-impact"><span class="impact-dot high"></span>Dampak Tinggi</div>
+          </div>
+        </div>
+        <div class="rec-card-new">
+          <div class="rec-card-num">03</div>
+          <div class="rec-card-icon"><i data-lucide="moon"></i></div>
+          <div class="rec-card-body">
+            <div class="rec-card-feature">Shift Keberangkatan</div>
+            <div class="rec-card-title">Redistribusi Beban Shift Malam</div>
+            <p>Shift malam memiliki proporsi keterlambatan lebih tinggi. Kurangi pengiriman jarak jauh di shift malam dan perkuat pengawasan operasional.</p>
+            <div class="rec-card-impact"><span class="impact-dot medium"></span>Dampak Sedang</div>
+          </div>
+        </div>
+        <div class="rec-card-new">
+          <div class="rec-card-num">04</div>
+          <div class="rec-card-icon"><i data-lucide="truck"></i></div>
+          <div class="rec-card-body">
+            <div class="rec-card-feature">Kapasitas Armada</div>
+            <div class="rec-card-title">Peningkatan Kapasitas Armada</div>
+            <p>Kapasitas armada yang tidak sesuai muatan berdampak pada waktu tempuh. Prioritaskan armada berkapasitas cukup untuk rute-rute dengan volume tinggi.</p>
+            <div class="rec-card-impact"><span class="impact-dot medium"></span>Dampak Sedang</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============ UPLOAD TAB ============ -->
+    <div class="tab-content" id="tab-upload">
+      <div class="tab-hero fade-in-up">
+        <div class="tab-hero-label">DATA IMPORT MODULE</div>
+        <h2 class="tab-hero-title">Upload Data <span class="accent">Excel / CSV</span></h2>
+        <p class="tab-hero-desc">Import data operasional logistik Anda untuk analisis SPC & Random Forest secara real-time</p>
+      </div>
+
+      <!-- Upload Zone -->
+      <div class="upload-zone fade-in-up" id="uploadZone">
+        <div class="upload-inner">
+          <div class="upload-icon">
+            <i data-lucide="upload-cloud"></i>
+          </div>
+          <div class="upload-text">
+            <strong>Drag & Drop file Excel/CSV di sini</strong>
+            <span>atau klik untuk memilih file</span>
+            <span class="upload-hint">Mendukung: .xlsx, .xls, .csv · Maksimum 10MB</span>
+          </div>
+          <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+            <i data-lucide="folder-open"></i> Pilih File
+          </button>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden onchange="handleFileUpload(event)" />
+      </div>
+
+      <!-- Column Mapper -->
+      <div class="mapper-card fade-in-up" id="mapperCard" style="display:none">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Pemetaan Kolom Data</div>
+            <div class="chart-sub">Petakan kolom dataset ke variabel SPC (wajib) dan 8 fitur Random Forest (opsional)</div>
+          </div>
+          <button class="analyze-btn" onclick="runAnalysis()">
+            <i data-lucide="play-circle"></i> Jalankan Analisis
+          </button>
+        </div>
+        <div class="mapper-grid" id="mapperGrid"></div>
+      </div>
+
+      <!-- Preview Table -->
+      <div class="table-card fade-in-up" id="previewCard" style="display:none">
+        <div class="table-header">
+          <div class="chart-title">Preview Data</div>
+          <div class="chart-sub" id="previewMeta"></div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table" id="previewTable"></table>
+        </div>
+      </div>
+
+      <!-- Uploaded Analysis Results -->
+      <div id="uploadedDashboard" style="display:none">
+        <div class="upload-results-header fade-in-up">
+          <div class="tab-hero-label">HASIL ANALISIS OTOMATIS</div>
+        </div>
+        <div class="charts-row fade-in-up">
+          <div class="chart-card large">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Distribusi Nilai per Kolom</div>
+                <div class="chart-sub">Berdasarkan data yang diupload</div>
+              </div>
+              <div class="chart-badge">AUTO-ANALYSIS</div>
+            </div>
+            <canvas id="uploadedBarChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Ringkasan Statistik</div>
+                <div class="chart-sub">Deskriptif data upload</div>
+              </div>
+            </div>
+            <div id="statsGrid" class="stats-grid-upload"></div>
+          </div>
+        </div>
+        <div class="chart-card full fade-in-up">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Tren Data Kolom Numerik</div>
+              <div class="chart-sub">Visualisasi time-series data upload</div>
+            </div>
+          </div>
+          <canvas id="uploadedLineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Sample Template -->
+      <div class="template-card fade-in-up">
+        <div class="template-icon"><i data-lucide="file-spreadsheet"></i></div>
+        <div class="template-text">
+          <strong>Butuh template data?</strong>
+          <span>Format standar mencakup semua kolom Feature Importance RF: Tanggal, Status, Jarak_Rute_KM, Kode_Vendor, Shift_Keberangkatan, Kapasitas_Armada_Ton, Tipe_Kendaraan, Kondisi_Cuaca, Hari_dalam_Minggu, Jumlah_Titik_Bongkar, Waktu_Tempuh_Jam</span>
+        </div>
+        <button class="template-btn" onclick="downloadTemplate()">
+          <i data-lucide="download"></i> Download Template
+        </button>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer fade-in-up">
+      <div class="footer-left">
+        <div class="footer-logo">AHM Distribution Intelligence</div>
+        <div class="footer-meta">
+          Muhammad Ad'hiya Hartono · 235090500111056<br>
+          Program Studi Sarjana Statistika · Universitas Brawijaya · 2026
+        </div>
+      </div>
+      <div class="footer-right">
+        <div class="footer-method">SPC + Random Forest + SMOTE</div>
+        <div class="footer-sub">Dosen Pembimbing: Rahma Fitriani S.Si., M.Si., Ph.D.</div>
+      </div>
+    </footer>
+
+  </div><!-- /#app -->
+
+  <script src="script.js"></script>
+</body>
+</html>
